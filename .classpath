@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="/org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/java-6-openjdk"/>
+	<classpathentry kind="lib" path="/home/nmodly/sketchbook/ManetVisualizerSketch/code/libmanet.jar"/>
+	<classpathentry kind="lib" path="/home/nmodly/sketchbook/ManetVisualizerSketch/code/apwidgets.jar"/>
+	<classpathentry kind="src" path="generated/preproc"/>
+	<classpathentry kind="lib" path="/home/nmodly/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/processing.plugin.core_0.2.5.1/Resources/lib/core.jar"/>
+	<classpathentry kind="output" path="generated/compiler"/>
+</classpath>
