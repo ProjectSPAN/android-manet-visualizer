@@ -5,22 +5,33 @@ class Graph
 {
   ArrayList<Node> nodes = new ArrayList<Node>();
 
-  void addNode(Node node) {
+  Node addNode(Node node) {
     if (!nodes.contains(node)) {
+      node.setPosition((int)random(0, width), (int)random(0,height));
       nodes.add(node);
     }
+    return nodes.get(nodes.indexOf(node));
   }
 
   int size() { 
     return nodes.size();
   }
 
-  boolean linkNodes(Node n1, Node n2) {
-    if (nodes.contains(n1) && nodes.contains(n2)) {
-      n1.addEdge(n2); 
-      return true;
-    }
-    return false;
+boolean contains(Node n){
+  return nodes.contains(n);
+}
+
+//from n1 to n2
+  void directedLink(Node n1, Node n2){
+    Node n_1 = addNode(n1);
+    Node n_2 = addNode(n2);
+    n_1.addOutgoingEdge(n_2);
+    n_2.addIncomingEdge(n_1);
+  }
+  
+  void bidirectionalLink(Node n1, Node n2){
+    directedLink(n1, n2);
+    directedLink(n2, n1);
   }
 
   Node getNode(int index) {
@@ -30,6 +41,8 @@ class Graph
   ArrayList<Node> getNodes() {
     return nodes;
   }
+
+
 
 
   boolean reflow() {
@@ -42,7 +55,7 @@ class Graph
     int reset = 0;
     for (Node n: nodes)
     {
-      ArrayList<Node> edges = n.getEdges();
+      ArrayList<Node> edges = n.getAllEdges();
       // compute the total push force acting on this node
       //all nodes push on it
       double fx=0;
@@ -89,14 +102,21 @@ class Graph
     return false;
   }
 
+//focus a node
+  void focus(Node n){
+    nodes.get(nodes.indexOf(n)).setFocus();  
+  }
+  
+  
   // draw nodes
   void draw() {
     for (Node n: nodes) {
-      n.drawEdges();
-    }
-    for (Node n: nodes) {
       n.draw();
     }
+    for (Node n: nodes) {
+      n.drawEdges();
+    }
+
   }
 }
 

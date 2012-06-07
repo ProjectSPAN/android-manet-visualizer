@@ -3,8 +3,19 @@ package processing.android.test.manetvisualizersketch;
 import processing.core.*; 
 
 import apwidgets.*; 
+import java.util.TreeSet; 
+import android.adhoc.manet.ManetObserver; 
+import android.adhoc.manet.service.ManetService.AdhocStateEnum; 
+import android.adhoc.manet.system.ManetConfig; 
+import android.adhoc.manet.ManetHelper; 
+import android.content.Context; 
+import android.app.Activity; 
+import android.widget.Toast; 
 
 import apwidgets.*; 
+import android.adhoc.manet.system.*; 
+import android.adhoc.manet.service.*; 
+import android.adhoc.manet.*; 
 
 import android.view.MotionEvent; 
 import android.view.KeyEvent; 
@@ -19,11 +30,20 @@ public class ManetVisualizerSketch extends PApplet {
 
 
 
+
+
+
+
+
+
+
+
 //Control Variables
 APWidgetContainer widgetContainer; 
 APButton btn_refresh;
 
 //Data Variables
+ManetCommunicator mComm;
 Graph g=null;
 ArrayList<Node> nodes;
 Node focus;
@@ -33,90 +53,206 @@ int padding=30;
 
 //Set up initial state
 public void setup() { 
+
+  mComm = new ManetCommunicator(this);
+
   nodes = new ArrayList<Node>();
  
   //size(500, 300);
   //build controls
+  //Mcomm = new ManetCommunicator(this);
   widgetContainer = new APWidgetContainer(this); //create new container for widgets
   btn_refresh = new APButton(10, 10, 100, 50, "Refresh"); 
   widgetContainer.addWidget(btn_refresh); //place button in container
 
 
-  frameRate(24);
+  // frameRate(24);
   noLoop();
 
   //build graph
-  makeGraph();
+  makeGraph(null);
   redraw();
 } 
 
 public void onClickWidget(APWidget widget) {
   if (widget == btn_refresh) {
-    makeGraph(); //set the smaller size
+    mComm.getRoutingInfo();
   }
 }
 
-  public void draw() { 
-    background(255);
-    fill(150, 150, 150);
-    stroke(0);
-    rect(0, 0, 200, height);
-    boolean done = g.reflow();
-    g.draw();
-    if (!done) { 
-      loop();
-    } 
-    else { 
-      noLoop();
+public void draw() { 
+  background(255);
+  fill(150, 150, 150);
+  stroke(0);
+  rect(0, 0, 200, height);
+  boolean done = g.reflow();
+  g.draw();
+  if (!done) { 
+    loop();
+  } 
+  else { 
+    noLoop();
+  }
+}
+
+public void makeGraph(String data)
+{
+  if (data != null) {
+    System.out.println(data+"\n-----------------------");
+    String lines[] = data.split("\\r?\\n");
+    int index = 5;
+    while (!lines[index].contains ("Table:")) {
+      
+      System.out.println( lines[index] );
+      int wsIndex = lines[index].indexOf(' ');
+      int dsIndex = lines[index].indexOf(' ', wsIndex+6);
+      String src = lines[index].substring(0, wsIndex);
+      String dst = lines[index].substring(wsIndex+6, dsIndex);
+      System.out.println(src + " -> " + dst);
+      index++;
+    }
+  }
+  //this is where we need to get the manet info
+  // define a graph
+  nodes.clear();
+  g = new Graph();
+
+  // define some nodes
+  Node n1 = new Node("node1", width/2, height/2);
+  Node n2 = new Node("node2", (int)random(padding, width-padding), (int)random(padding, height-padding));
+  Node n3 = new Node("node3", (int)random(padding, width-padding), (int)random(padding, height-padding));
+  Node n4 = new Node("node4", (int)random(padding, width-padding), (int)random(padding, height-padding));
+  Node n5 = new Node("node5", (int)random(padding, width-padding), (int)random(padding, height-padding));
+  Node n6 = new Node("node6", (int)random(padding, width-padding), (int)random(padding, height-padding));
+
+  nodes.add(n1);
+  nodes.add(n2);
+  nodes.add(n3);
+  nodes.add(n4);
+  nodes.add(n5);
+  nodes.add(n6);
+
+  focus = n4;
+  n4.setFocus();
+
+  // add nodes to graph
+  g.addNode(n1);
+  g.addNode(n2);
+  g.addNode(n3);
+  g.addNode(n4);
+  g.addNode(n5);
+  g.addNode(n6);
+
+  // link nodes
+  g.linkNodes(n1, n2);
+  g.linkNodes(n2, n3);
+  g.linkNodes(n3, n4);
+  g.linkNodes(n4, n1);
+  g.linkNodes(n1, n3);
+  g.linkNodes(n2, n4);
+  g.linkNodes(n5, n6);
+  g.linkNodes(n1, n6);
+  g.linkNodes(n2, n5);
+} 
+
+
+
+class ManetCommunicator implements ManetObserver {
+  ManetHelper helper;
+  Context context;
+  boolean connected;
+  String info = null;
+
+  public ManetCommunicator(Context c) {
+    this.context = c;
+    connected = false;
+    Activity activity=(Activity) this.context;
+    helper = new ManetHelper(this.context);
+    activity.runOnUiThread(new Runnable() {
+      public void run() {
+        helper.registerObserver(ManetCommunicator.this);
+        helper.connectToService();
+        Toast.makeText((Activity)ManetCommunicator.this.context, "Connected to Manet Service", Toast.LENGTH_LONG).show();
+      }
+    }
+    );
+  }
+
+  public void getRoutingInfo() {
+    if (connected) {
+      print("Get routing info...");
+      Activity activity=(Activity) this.context;
+      activity.runOnUiThread(new Runnable() {
+        public void run() {
+          Toast.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Route Info", Toast.LENGTH_SHORT).show();
+          helper.sendRoutingInfoQuery();
+        }
+      }
+      );
     }
   }
 
-  public void makeGraph()
-  {
-    //this is where we need to get the manet info
-    // define a graph
-    nodes.clear();
-    g = new Graph();
 
-    // define some nodes
-    Node n1 = new Node("node1", width/2, height/2);
-    Node n2 = new Node("node2", (int)random(padding, width-padding), (int)random(padding, height-padding));
-    Node n3 = new Node("node3", (int)random(padding, width-padding), (int)random(padding, height-padding));
-    Node n4 = new Node("node4", (int)random(padding, width-padding), (int)random(padding, height-padding));
-    Node n5 = new Node("node5", (int)random(padding, width-padding), (int)random(padding, height-padding));
-    Node n6 = new Node("node6", (int)random(padding, width-padding), (int)random(padding, height-padding));
+  @Override
+    public void onAdhocStateUpdated(AdhocStateEnum arg0, String arg1) {
+    // TODO Auto-generated method stub
+  }
 
-    nodes.add(n1);
-    nodes.add(n2);
-    nodes.add(n3);
-    nodes.add(n4);
-    nodes.add(n5);
-    nodes.add(n6);
+  @Override
+    public void onConfigUpdated(ManetConfig arg0) {
+    // TODO Auto-generated method stub
+  }
 
-    focus = n4;
-    n4.setFocus();
+  @Override
+    public void onError(String arg0) {
+    // TODO Auto-generated method stub
+  }
 
-    // add nodes to graph
-    g.addNode(n1);
-    g.addNode(n2);
-    g.addNode(n3);
-    g.addNode(n4);
-    g.addNode(n5);
-    g.addNode(n6);
+  @Override
+    public void onPeersUpdated(TreeSet<String> arg0) {
+    // TODO Auto-generated method stub
+  }
 
-    // link nodes
-    g.linkNodes(n1, n2);
-    g.linkNodes(n2, n3);
-    g.linkNodes(n3, n4);
-    g.linkNodes(n4, n1);
-    g.linkNodes(n1, n3);
-    g.linkNodes(n2, n4);
-    g.linkNodes(n5, n6);
-    g.linkNodes(n1, n6);
-    g.linkNodes(n2, n5);
-  } 
+  @Override
+    public void onRoutingInfoUpdated(String arg0) {
+    // TODO Auto-generated method stub
+    
+    if(arg0 == null){
+            Activity activity=(Activity) this.context;
+      activity.runOnUiThread(new Runnable() {
+        public void run() {
+          Toast.makeText((Activity)ManetCommunicator.this.context, "Error: Device not in adhoc mode", Toast.LENGTH_SHORT).show();
+        }
+      }
+      );
+    }
+    //print("Recieved routing info: " + arg0+"\n-------------------------");
+    makeGraph(arg0);
+  }
 
+  @Override
+    public void onServiceConnected() {
+    // TODO Auto-generated method stub
+    connected = true;
+    print("Connected!");
+  }
 
+  @Override
+    public void onServiceDisconnected() {
+    connected = false;
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+    public void onServiceStarted() {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+    public void onServiceStopped() {
+    // TODO Auto-generated method stub
+  }
+}
 
 
 
@@ -156,8 +292,8 @@ class Graph
     int buffer = 20;
     int control_width = 200;
     double elasticity = 200.0f;
-    double repulsion = -1000;
-    double tension = .1f;
+    double repulsion = -500;
+    double tension = .01f;
 
     int reset = 0;
     for (Node n: nodes)
@@ -231,8 +367,8 @@ class Node
     label=_label; 
     x=_x; 
     y=_y; 
-    r1=5; 
-    r2=5;
+    r1=10; 
+    r2=10;
   }
 
   public String getLabel() {
@@ -308,48 +444,6 @@ class Node
   
 }
 
-/**
- * Simmple graph layout system
- * http://processingjs.nihongoresources.com/graphs
- * (c) Mike "Pomax" Kamermans 2011
- */
-
-// =============================================
-//      Some universal helper functions
-// =============================================
-
-// universal helper function: get the angle (in radians) for a particular dx/dy
-public float getDirection(double dx, double dy) {
-  // quadrant offsets
-  double d1 = 0.0f;
-  double d2 = PI/2.0f;
-  double d3 = PI;
-  double d4 = 3.0f*PI/2.0f;
-  // compute angle basd on dx and dy values
-  double angle = 0;
-  float adx = abs((float)dx);
-  float ady = abs((float)dy);
-  // Vertical lines are one of two angles
-  if(dx==0) { angle = (dy>=0? d2 : d4); }
-  // Horizontal lines are also one of two angles
-  else if(dy==0) { angle = (dx>=0? d1 : d3); }
-  // The rest requires trigonometry (note: two use dx/dy and two use dy/dx!)
-  else if(dx>0 && dy>0) { angle = d1 + atan(ady/adx); }		// direction: X+, Y+
-  else if(dx<0 && dy>0) { angle = d2 + atan(adx/ady); }		// direction: X-, Y+
-  else if(dx<0 && dy<0) { angle = d3 + atan(ady/adx); }		// direction: X-, Y-
-  else if(dx>0 && dy<0) { angle = d4 + atan(adx/ady); }		// direction: X+, Y-
-  // return directionality in positive radians
-  return (float)(angle + 2*PI)%(2*PI); }
-
-// universal helper function: rotate a coordinate over (0,0) by [angle] radians
-public int[] rotateCoordinate(float x, float y, float angle) {
-  int[] rc = {0,0};
-  rc[0] = (int)(x*cos(angle) - y*sin(angle));
-  rc[1] = (int)(x*sin(angle) + y*cos(angle));
-  return rc; }
-
-// universal helper function for Processing.js - 1.1 does not support ArrayList.addAll yet
-public void addAll(ArrayList a, ArrayList b) { for(Object o: b) { a.add(o); }}
 
   public int sketchWidth() { return screenWidth; }
   public int sketchHeight() { return screenHeight; }
