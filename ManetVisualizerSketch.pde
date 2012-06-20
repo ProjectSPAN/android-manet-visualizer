@@ -1,15 +1,22 @@
 //Imports
 import apwidgets.*;
 import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.HashSet;
 import android.adhoc.manet.ManetObserver;
 import android.adhoc.manet.service.ManetService.AdhocStateEnum;
 import android.adhoc.manet.system.ManetConfig;
 import android.adhoc.manet.ManetHelper;
+import android.adhoc.manet.ManetParser;
+import android.adhoc.manet.routing.OlsrProtocol;
+import android.adhoc.manet.routing.SimpleProactiveProtocol;
+import android.adhoc.manet.routing.Node;
 import android.content.Context;
 import android.app.Activity;
+import android.view.Menu;
 import android.widget.Toast;
-
-
+import android.view.SubMenu;
+import android.view.MenuItem;
 
 //Control Variables
 APWidgetContainer widgetContainer; 
@@ -17,12 +24,33 @@ APButton btn_refresh;
 
 //Data Variables
 ManetCommunicator mComm;
-Graph g=null;
+volatile Graph g=null;
 ArrayList<Node> nodes;
 Node focus;
 
 //Other Variables
 int padding=30;
+
+//Handle Menu
+@Override
+public boolean onCreateOptionsMenu(Menu menu){
+  System.out.println("OnCreateOptionsMenu");
+  boolean supRetVal = super.onCreateOptionsMenu(menu);
+  SubMenu reset = menu.addSubMenu(0, 0, 0, "Reset");
+ return supRetVal;
+}
+
+@Override
+    public boolean onOptionsItemSelected(MenuItem menuItem) {
+    	boolean supRetVal = super.onOptionsItemSelected(menuItem);
+    	switch (menuItem.getItemId()) {
+	    	case 0 :
+		  g.clear();
+                  mComm.getRoutingInfo();
+                  break;
+	    }
+    	return supRetVal;
+    }    
 
 //Set up initial state
 void setup() { 
@@ -34,31 +62,51 @@ void setup() {
   //size(500, 300);
   //build controls
   //Mcomm = new ManetCommunicator(this);
-  widgetContainer = new APWidgetContainer(this); //create new container for widgets
-  btn_refresh = new APButton(10, 10, 100, 50, "Refresh"); 
-  widgetContainer.addWidget(btn_refresh); //place button in container
+  //widgetContainer = new APWidgetContainer(this); //create new container for widgets
+  //btn_refresh = new APButton(10, 10, 100, 50, "Refresh"); 
+  //widgetContainer.addWidget(btn_refresh); //place button in container
 
 
   // frameRate(24);
   noLoop();
-
+  g=new Graph();
   //build graph
-  makeGraph(null);
   redraw();
-  mComm.getRoutingInfo();
+  //create thread to get routing info on a timer
+
+
+  Thread updateThread = new Thread() {
+    public void run() {
+      while (true) {
+        System.out.println("Performing Auto-update");
+        mComm.getRoutingInfo();
+        try {
+          Thread.sleep(3 * 1000);
+        }
+        catch(Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  };
+  updateThread.start();
 } 
 
+
+/*
 void onClickWidget(APWidget widget) {
   if (widget == btn_refresh) {
+    g.clear();
     mComm.getRoutingInfo();
   }
 }
+*/
 
 void draw() { 
   background(255);
-  fill(150, 150, 150);
+  //fill(150, 150, 150);
   stroke(0);
-  rect(0, 0, 200, height);
+  //rect(0, 0, 200, height);
   boolean done = g.reflow();
   g.draw();
   if (!done) { 
@@ -69,127 +117,56 @@ void draw() {
   }
 }
 
-void makeGraph(String data)
+//modify this to pass in arrayList of Strings 192.168.11.xxx,192.168.11.yyy (directed edges)
+void makeGraph(ArrayList<String> data)
 {
-  nodes.clear();
-  g = new Graph();
+  if (data == null) return;
 
-  if (data != null) {
-    System.out.println(data+"\n-----------------------");
-    String lines[] = data.split("\\r?\\n");
-    int linksIndex = -1;
-    int topologyIndex=-1;
-    int ipIndex = -1;
 
-    for (int i=0; i<lines.length; i++) {
-      if (lines[i].contains("Table: Links") ) {
-        linksIndex = i+2;
-      }
-      if (lines[i].contains("Table: Topology") ) {
-        topologyIndex = i+2;
-      }
-      if (lines[i].contains("Table: Interfaces") ) {
-        ipIndex = i+2;
-      }
+  Graph g_temp = new Graph();
+  for (int i=0; i<data.size(); i++) {
+    System.out.println("Edge: " + data.get(i));
+    int dsh = data.get(i).indexOf(">");
+    String src = data.get(i).substring(0, dsh);
+    String dst = data.get(i).substring(dsh+1, data.get(i).length());
+    Node src_n;
+    if (g_temp.containsLabel(src)) {
+      src_n = g_temp.getNodeByLabel(src);
+    }
+    else if (g.containsLabel(src)) {
+      src_n = g.getNodeByLabel(src);
+      src_n.clearLinks();
+      src_n = g_temp.addNode(src_n);
+    }
+    else {
+      src_n = new Node(src);
+      src_n = g_temp.addNode(src_n);
     }
 
-
-
-    //Add links
-    System.out.println("\nAdding nodes from Links");
-    int index = linksIndex;
-    while ( lines[index].length ()> 16) {
-      int wsIndex = lines[index].indexOf(' ');
-      int dsIndex = lines[index].indexOf(' ', wsIndex+6);
-      String src = lines[index].substring(0, wsIndex);
-      String dst = lines[index].substring(wsIndex+5, dsIndex);
-
-      //Add the edge to graph
-      System.out.println("Adding node: " + src + " <-> " + dst);
-      Node srcN = new Node(src);
-      Node dstN = new Node(dst);
-
-      g.bidirectionalLink(srcN, dstN);
-      index++;
+    Node dst_n;
+    if (g_temp.containsLabel(dst)) {
+      dst_n = g_temp.getNodeByLabel(dst);
     }
-    System.out.println("\nAdding nodes from Topology");
-    index = topologyIndex;
-    while ( lines[index].length () > 16) {
-      int wsIndex = lines[index].indexOf(' ');
-      int dsIndex = lines[index].indexOf(' ', wsIndex+6);
-      String dst = lines[index].substring(0, wsIndex);
-      String src = lines[index].substring(wsIndex+5, dsIndex);
-
-      //Add the edge to graph
-      System.out.println("Adding node: " + src + " --> " + dst);
-      Node srcN = new Node(src);
-      Node dstN = new Node(dst);
-
-      g.directedLink(srcN, dstN);
-      index++;
+    else if (g.containsLabel(dst)) {
+      dst_n = g.getNodeByLabel(dst);
+      dst_n.clearLinks();
+      dst_n = g_temp.addNode(dst_n);
     }
-    
-    //Focus this node
-    int wsIdx = lines[ipIndex].indexOf(' ');
-    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
-    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
-    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
-    int dsIdx = lines[ipIndex].indexOf(' ', wsIdx+6);
+    else {
+      dst_n = new Node(dst);
+      dst_n = g_temp.addNode(dst_n);
+    }
 
-    String myIP = lines[ipIndex].substring(wsIdx+5, dsIdx);  
-    System.out.println("My IP: " + myIP);
-    Node thisN = new Node(myIP);
-    g.focus(thisN);
-    
-    
+    g_temp.directedLink(src_n, dst_n);
   }
-  //this is where we need to get the manet info
-  // define a graph
-
-  /*
-  // define some nodes
-   Node n1 = new Node("node1", width/2, height/2);
-   Node n2 = new Node("node2", (int)random(padding, width-padding), (int)random(padding, height-padding));
-   Node n3 = new Node("node3", (int)random(padding, width-padding), (int)random(padding, height-padding));
-   Node n4 = new Node("node4", (int)random(padding, width-padding), (int)random(padding, height-padding));
-   Node n5 = new Node("node5", (int)random(padding, width-padding), (int)random(padding, height-padding));
-   Node n6 = new Node("node6", (int)random(padding, width-padding), (int)random(padding, height-padding));
-   
-   nodes.add(n1);
-   nodes.add(n2);
-   nodes.add(n3);
-   nodes.add(n4);
-   nodes.add(n5);
-   nodes.add(n6);
-   
-   focus = n4;
-   n4.setFocus();
-   
-   // add nodes to graph
-   g.addNode(n1);
-   g.addNode(n2);
-   g.addNode(n3);
-   g.addNode(n4);
-   g.addNode(n5);
-   g.addNode(n6);
-   
-   // link nodes
-   
-   g.bidirectionalLink(n1, n2);
-   g.bidirectionalLink(n2, n3);
-   g.bidirectionalLink(n3, n4);
-   g.bidirectionalLink(n4, n1);
-   g.directedLink(n1, n3);
-   g.directedLink(n2, n4);
-   g.directedLink(n5, n6);
-   g.directedLink(n1, n6);
-   g.directedLink(n2, n5);
-   */
+  g = g_temp;
+  
+  String myIP = mComm.getConfig().getIpAddress();
+  g.focus(g.getNodeByLabel(myIP));
 } 
 
-
-
 class ManetCommunicator implements ManetObserver {
+  ManetConfig manetcfg;
   ManetHelper helper;
   Context context;
   boolean connected;
@@ -210,14 +187,18 @@ class ManetCommunicator implements ManetObserver {
     );
   }
 
+  public ManetConfig getConfig() {
+    return manetcfg;
+  }
+
   public void getRoutingInfo() {
     if (connected) {
-      print("Get routing info...");
+      //getConfigObject
       Activity activity=(Activity) this.context;
       activity.runOnUiThread(new Runnable() {
         public void run() {
-          Toast.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Route Info", Toast.LENGTH_SHORT).show();
-          helper.sendRoutingInfoQuery();
+          //Toast.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Manet Configuration", Toast.LENGTH_SHORT).show();
+          helper.sendManetConfigQuery();
         }
       }
       );
@@ -232,6 +213,21 @@ class ManetCommunicator implements ManetObserver {
 
   @Override
     public void onConfigUpdated(ManetConfig arg0) {
+    System.out.println("-Received ManetConfig");
+
+    manetcfg = arg0;
+    //set config object
+    if (connected) {
+      //getConfigObject
+      Activity activity=(Activity) this.context;
+      activity.runOnUiThread(new Runnable() {
+        public void run() {
+          //Toast.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Manet Configuration", Toast.LENGTH_SHORT).show();
+          helper.sendRoutingInfoQuery();
+        }
+      }
+      );
+    }
     // TODO Auto-generated method stub
   }
 
@@ -240,14 +236,12 @@ class ManetCommunicator implements ManetObserver {
     // TODO Auto-generated method stub
   }
 
-  @Override
-    public void onPeersUpdated(TreeSet<String> arg0) {
-    // TODO Auto-generated method stub
-  }
 
   @Override
     public void onRoutingInfoUpdated(String arg0) {
     // TODO Auto-generated method stub
+    System.out.println("-Receieved Routing Info");
+
 
     if (arg0 == null) {
       Activity activity=(Activity) this.context;
@@ -258,15 +252,25 @@ class ManetCommunicator implements ManetObserver {
       }
       );
     }
-    //print("Recieved routing info: " + arg0+"\n-------------------------");
-    makeGraph(arg0);
+
+    ArrayList<String> edges;
+    if (manetcfg.getRoutingProtocol().equals(OlsrProtocol.NAME)) {
+      System.out.println("--Using OLSR.");
+      edges = ManetParser.parseOLSR(arg0);
+    }
+    else {
+      System.out.println("--Using Simple");
+      edges = ManetParser.parseRoutingInfo(arg0);
+    }
+
+    makeGraph(edges);
   }
 
   @Override
     public void onServiceConnected() {
     // TODO Auto-generated method stub
     connected = true;
-    print("Connected!");
+    System.out.println("Connected!");
   }
 
   @Override
@@ -282,6 +286,11 @@ class ManetCommunicator implements ManetObserver {
 
   @Override
     public void onServiceStopped() {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+    public void onPeersUpdated(HashSet<android.adhoc.manet.routing.Node> peers) {
     // TODO Auto-generated method stub
   }
 }

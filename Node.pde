@@ -16,8 +16,9 @@ class Node
   
   Node(String _label){
     label = _label;
-    x=width/2; 
-    y=height/2; 
+    x = (int)random(0, width);
+    y = (int)random(0, height);
+
     r1=10; 
     r2=10;
   }
@@ -25,6 +26,15 @@ class Node
   String getLabel() {
     return label;
   }
+  
+  synchronized void clearLinks(){
+    incomingEdges.clear();
+    outgoingEdges.clear();
+  }
+
+boolean isFocused(){
+  return this.focus;
+}
 
   void setFocus() {
     focus = true;
@@ -34,19 +44,19 @@ class Node
     focus=false;
   }
 
-  void addIncomingEdge(Node n) {
+  synchronized void addIncomingEdge(Node n) {
     if (!incomingEdges.contains(n)) {
       incomingEdges.add(n);
     }
   }
   
-    void addOutgoingEdge(Node n) {
+   synchronized void addOutgoingEdge(Node n) {
     if (!outgoingEdges.contains(n)) {
       outgoingEdges.add(n);
     }
   }
 
-  ArrayList<Node> getAllEdges() {
+  synchronized ArrayList<Node> getAllEdges() {
     ArrayList<Node> edges = new ArrayList<Node>();
     for(int i=0; i<incomingEdges.size(); i++){
       if(!edges.contains(incomingEdges.get(i))){
@@ -103,10 +113,10 @@ class Node
     return "Node: " + label;
   }
 
-  void drawEdges() {
+  synchronized void drawEdges() {
     stroke(0);
     fill(0);
-    strokeWeight(4);
+    strokeWeight(2);
     for (Node e: incomingEdges) {
       arrowLine((float)x, (float)y, (float)e.x, (float)e.y, radians(20), 0, true);
     }

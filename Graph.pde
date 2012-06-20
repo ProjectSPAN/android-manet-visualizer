@@ -3,11 +3,10 @@
 // models a graph of nodes and bi-directional edges
 class Graph
 {
-  ArrayList<Node> nodes = new ArrayList<Node>();
+  volatile ArrayList<Node> nodes = new ArrayList<Node>();
 
-  Node addNode(Node node) {
+ synchronized Node addNode(Node node) {
     if (!nodes.contains(node)) {
-      node.setPosition((int)random(0, width), (int)random(0,height));
       nodes.add(node);
     }
     return nodes.get(nodes.indexOf(node));
@@ -21,10 +20,38 @@ boolean contains(Node n){
   return nodes.contains(n);
 }
 
+boolean containsLabel(String s){
+ return nodes.contains(new Node(s)); 
+}
+
+Node getNodeByLabel(String label){
+  int i = nodes.indexOf(new Node(label));
+  return nodes.get(i);
+}
+
+synchronized void clear(){
+ nodes.clear(); 
+}
+
+synchronized String toString(){
+  String s = "BEGIN GRAPH\n";
+  for(int i=0; i<nodes.size(); i++){
+    s+=nodes.get(i).getLabel();
+    if(nodes.get(i).isFocused()){
+      s+=" *****";
+    }
+    s+="\n";
+  }
+s+="END GRAPH\n";
+return s;
+}
+
 //from n1 to n2
-  void directedLink(Node n1, Node n2){
-    Node n_1 = addNode(n1);
-    Node n_2 = addNode(n2);
+  synchronized void directedLink(Node n_1, Node n_2){
+    /*
+    Node n_1 = addNode(n_1);
+    Node n_2 = addNode(n_2);
+    */
     n_1.addOutgoingEdge(n_2);
     n_2.addIncomingEdge(n_1);
   }
@@ -38,6 +65,17 @@ boolean contains(Node n){
     return nodes.get(index);
   }
 
+Node copyNode(String label){
+  int i = nodes.indexOf(new Node(label));
+  if(i < 0){
+    Node n = new Node(label, (int)random(0, width), (int)random(0,height) );
+    return n;
+  }
+  else{
+    return nodes.get(i);
+  }
+}
+
   ArrayList<Node> getNodes() {
     return nodes;
   }
@@ -47,9 +85,9 @@ boolean contains(Node n){
 
   boolean reflow() {
     int buffer = 20;
-    int control_width = 200;
+    int control_width = 0;
     double elasticity = 200.0;
-    double repulsion = -500;
+    double repulsion = -5000;
     double tension = .01;
 
     int reset = 0;
@@ -104,12 +142,18 @@ boolean contains(Node n){
 
 //focus a node
   void focus(Node n){
-    nodes.get(nodes.indexOf(n)).setFocus();  
+    if(nodes.contains(n)){
+    nodes.get(nodes.indexOf(n)).setFocus();
+    }
+    else{
+      n.setFocus();
+      nodes.add(n);
+    }
   }
   
   
   // draw nodes
-  void draw() {
+  synchronized void draw() {
     for (Node n: nodes) {
       n.draw();
     }

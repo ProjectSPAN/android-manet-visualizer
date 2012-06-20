@@ -39,10 +39,11 @@ class Graph
 {
   ArrayList<Node> nodes = new ArrayList<Node>();
 
-  public void addNode(Node node) {
+  public Node addNode(Node node) {
     if (!nodes.contains(node)) {
       nodes.add(node);
     }
+    return nodes.get(nodes.indexOf(node));
   }
 
   public int size() { 
@@ -53,25 +54,47 @@ public boolean contains(Node n){
   return nodes.contains(n);
 }
 
-  public void directedLink(Node from, Node to) {
-    addNode(from);
-    addNode(to);
-    from.addOutgoingEdge(to);
-    to.addIncomingEdge(from);
+
+public String toString(){
+  String s = "BEGIN GRAPH\n";
+  for(int i=0; i<nodes.size(); i++){
+    s+=nodes.get(i).getLabel();
+    if(nodes.get(i).isFocused()){
+      s+=" *****";
+    }
+    s+="\n";
+  }
+s+="END GRAPH\n";
+return s;
+}
+
+//from n1 to n2
+  public void directedLink(Node n1, Node n2){
+    Node n_1 = addNode(n1);
+    Node n_2 = addNode(n2);
+    n_1.addOutgoingEdge(n_2);
+    n_2.addIncomingEdge(n_1);
   }
   
   public void bidirectionalLink(Node n1, Node n2){
-    addNode(n1);
-    addNode(n2);
-    n1.addOutgoingEdge(n2);
-    n2.addOutgoingEdge(n1);
-    n1.addIncomingEdge(n2);
-    n2.addIncomingEdge(n1);
+    directedLink(n1, n2);
+    directedLink(n2, n1);
   }
 
   public Node getNode(int index) {
     return nodes.get(index);
   }
+
+public Node copyNode(String label){
+  int i = nodes.indexOf(new Node(label));
+  if(i < 0){
+    Node n = new Node(label, (int)random(0, width), (int)random(0,height) );
+    return n;
+  }
+  else{
+    return nodes.get(i);
+  }
+}
 
   public ArrayList<Node> getNodes() {
     return nodes;
@@ -137,14 +160,27 @@ public boolean contains(Node n){
     return false;
   }
 
+//focus a node
+  public void focus(Node n){
+    if(nodes.contains(n)){
+    nodes.get(nodes.indexOf(n)).setFocus();
+    }
+    else{
+      n.setFocus();
+      nodes.add(n);
+    }
+  }
+  
+  
   // draw nodes
   public void draw() {
     for (Node n: nodes) {
-      n.drawEdges();
-    }
-    for (Node n: nodes) {
       n.draw();
     }
+    for (Node n: nodes) {
+      n.drawEdges();
+    }
+
   }
 }
 
@@ -192,12 +228,29 @@ public void setup() {
 
   // frameRate(24);
   noLoop();
-
+  g=new Graph();
   //build graph
   makeGraph(null);
   redraw();
-  mComm.getRoutingInfo();
+  //create thread to get routing info on a timer
+  
+  Thread updateThread = new Thread(){
+    public void run() {
+    while(true) {
+      System.out.println("Performing Auto-update");
+      mComm.getRoutingInfo();
+      try{
+      Thread.sleep(10 * 1000);
+      }catch(Exception e){
+        e.printStackTrace();
+      }
+    }
+   }
+  };
+  updateThread.start();
 } 
+
+
 
 public void onClickWidget(APWidget widget) {
   if (widget == btn_refresh) {
@@ -222,14 +275,13 @@ public void draw() {
 
 public void makeGraph(String data)
 {
-  nodes.clear();
-  g = new Graph();
-  
+  Graph g_temp = new Graph();
   if (data != null) {
-    System.out.println(data+"\n-----------------------");
     String lines[] = data.split("\\r?\\n");
     int linksIndex = -1;
     int topologyIndex=-1;
+    int ipIndex = -1;
+
 
     for (int i=0; i<lines.length; i++) {
       if (lines[i].contains("Table: Links") ) {
@@ -238,93 +290,105 @@ public void makeGraph(String data)
       if (lines[i].contains("Table: Topology") ) {
         topologyIndex = i+2;
       }
+      if (lines[i].contains("Table: Interfaces") ) {
+        ipIndex = i+2;
+      }
     }
 
 
-//Add links
-System.out.println("\nAdding nodes from Links");
+
+    //Add links
+    System.out.println("\nAdding nodes from Links");
     int index = linksIndex;
     while ( lines[index].length ()> 16) {
       int wsIndex = lines[index].indexOf(' ');
       int dsIndex = lines[index].indexOf(' ', wsIndex+6);
       String src = lines[index].substring(0, wsIndex);
       String dst = lines[index].substring(wsIndex+5, dsIndex);
-      
+
       //Add the edge to graph
       System.out.println("Adding node: " + src + " <-> " + dst);
-      Node srcN = new Node(src, (int)random(padding, width-padding), (int)random(padding, height-padding));
-      Node dstN = new Node(dst, (int)random(padding, width-padding), (int)random(padding, height-padding));
-      g.addNode(srcN);
-      g.addNode(dstN);
-      g.bidirectionalLink(srcN, dstN);
+      Node srcN = g.copyNode(src);
+      srcN.clearLinks();
+      Node dstN = g.copyNode(dst);
+      dstN.clearLinks();
+
+      g_temp.bidirectionalLink(srcN, dstN);
       index++;
     }
     System.out.println("\nAdding nodes from Topology");
     index = topologyIndex;
-    while ( lines[index].length() > 16){
+    while ( lines[index].length () > 16) {
       int wsIndex = lines[index].indexOf(' ');
       int dsIndex = lines[index].indexOf(' ', wsIndex+6);
-      String src = lines[index].substring(0, wsIndex);
-      String dst = lines[index].substring(wsIndex+5, dsIndex);
-      
+      String dst = lines[index].substring(0, wsIndex);
+      String src = lines[index].substring(wsIndex+5, dsIndex);
+
       //Add the edge to graph
       System.out.println("Adding node: " + src + " --> " + dst);
-      Node srcN = new Node(src, (int)random(padding, width-padding), (int)random(padding, height-padding));
-      Node dstN = new Node(dst, (int)random(padding, width-padding), (int)random(padding, height-padding));
-      
-      g.addNode(srcN);
-      g.addNode(dstN);
-      g.directedLink(srcN, dstN);
+      Node srcN = g.copyNode(src);
+      srcN.clearLinks();
+      Node dstN = g.copyNode(dst);
+      dstN.clearLinks();
+
+      g_temp.directedLink(srcN, dstN);
       index++;
-      
     }
-    
 
-    
+    //Focus this node
+    int wsIdx = lines[ipIndex].indexOf(' ');
+    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
+    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
+    wsIdx = lines[ipIndex].indexOf(' ', wsIdx + 6);
+    int dsIdx = lines[ipIndex].indexOf(' ', wsIdx+6);
+
+    String myIP = lines[ipIndex].substring(wsIdx+5, dsIdx);  
+    System.out.println("My IP: " + myIP);
+    Node thisN = g.copyNode(myIP);
+    g_temp.focus(thisN);      
+    g = g_temp;
   }
-  //this is where we need to get the manet info
-  // define a graph
 
-/*
+
+  /*
   // define some nodes
-  Node n1 = new Node("node1", width/2, height/2);
-  Node n2 = new Node("node2", (int)random(padding, width-padding), (int)random(padding, height-padding));
-  Node n3 = new Node("node3", (int)random(padding, width-padding), (int)random(padding, height-padding));
-  Node n4 = new Node("node4", (int)random(padding, width-padding), (int)random(padding, height-padding));
-  Node n5 = new Node("node5", (int)random(padding, width-padding), (int)random(padding, height-padding));
-  Node n6 = new Node("node6", (int)random(padding, width-padding), (int)random(padding, height-padding));
-
-  nodes.add(n1);
-  nodes.add(n2);
-  nodes.add(n3);
-  nodes.add(n4);
-  nodes.add(n5);
-  nodes.add(n6);
-
-  focus = n4;
-  n4.setFocus();
-
-  // add nodes to graph
-  g.addNode(n1);
-  g.addNode(n2);
-  g.addNode(n3);
-  g.addNode(n4);
-  g.addNode(n5);
-  g.addNode(n6);
-
-  // link nodes
-
-  g.bidirectionalLink(n1, n2);
-  g.bidirectionalLink(n2, n3);
-  g.bidirectionalLink(n3, n4);
-  g.bidirectionalLink(n4, n1);
-  g.directedLink(n1, n3);
-  g.directedLink(n2, n4);
-  g.directedLink(n5, n6);
-  g.directedLink(n1, n6);
-  g.directedLink(n2, n5);
-  */
-  
+   Node n1 = new Node("node1", width/2, height/2);
+   Node n2 = new Node("node2", (int)random(padding, width-padding), (int)random(padding, height-padding));
+   Node n3 = new Node("node3", (int)random(padding, width-padding), (int)random(padding, height-padding));
+   Node n4 = new Node("node4", (int)random(padding, width-padding), (int)random(padding, height-padding));
+   Node n5 = new Node("node5", (int)random(padding, width-padding), (int)random(padding, height-padding));
+   Node n6 = new Node("node6", (int)random(padding, width-padding), (int)random(padding, height-padding));
+   
+   nodes.add(n1);
+   nodes.add(n2);
+   nodes.add(n3);
+   nodes.add(n4);
+   nodes.add(n5);
+   nodes.add(n6);
+   
+   focus = n4;
+   n4.setFocus();
+   
+   // add nodes to graph
+   g.addNode(n1);
+   g.addNode(n2);
+   g.addNode(n3);
+   g.addNode(n4);
+   g.addNode(n5);
+   g.addNode(n6);
+   
+   // link nodes
+   
+   g.bidirectionalLink(n1, n2);
+   g.bidirectionalLink(n2, n3);
+   g.bidirectionalLink(n3, n4);
+   g.bidirectionalLink(n4, n1);
+   g.directedLink(n1, n3);
+   g.directedLink(n2, n4);
+   g.directedLink(n5, n6);
+   g.directedLink(n1, n6);
+   g.directedLink(n2, n5);
+   */
 } 
 
 
@@ -433,10 +497,28 @@ class Node
     r1=10; 
     r2=10;
   }
+  
+  Node(String _label){
+    label = _label;
+    x = (int)random(0, width);
+    y = (int)random(0, height);
+
+    r1=10; 
+    r2=10;
+  }
 
   public String getLabel() {
     return label;
   }
+  
+  public void clearLinks(){
+    incomingEdges.clear();
+    outgoingEdges.clear();
+  }
+
+public boolean isFocused(){
+  return this.focus;
+}
 
   public void setFocus() {
     focus = true;
@@ -516,13 +598,14 @@ class Node
   }
 
   public void drawEdges() {
-    stroke(255,0,0);
+    stroke(0);
+    fill(0);
     strokeWeight(4);
     for (Node e: incomingEdges) {
-      arrowLine((float)x, (float)y, (float)e.x, (float)e.y, radians(30), 0, true);
+      arrowLine((float)x, (float)y, (float)e.x, (float)e.y, radians(20), 0, true);
     }
     for(Node e: outgoingEdges){
-      arrowLine(e.x, e.y, x, y, radians(30), 0, true);  
+      arrowLine(e.x, e.y, x, y, radians(20), 0, true);  
     }
     strokeWeight(1);
   }
@@ -582,7 +665,7 @@ class Node
     float y2;
     float x3;
     float y3;
-    final float SIZE = 8;
+    final float SIZE = 16;
 
     x2 = x0 + SIZE * cos(lineAngle + arrowAngle);
     y2 = y0 + SIZE * sin(lineAngle + arrowAngle);
