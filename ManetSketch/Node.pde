@@ -16,8 +16,9 @@ class Node
   
   Node(String _label){
     label = _label;
-    x=width/2; 
-    y=height/2; 
+    x = (int)random(0, width);
+    y = (int)random(0, height);
+
     r1=10; 
     r2=10;
   }
@@ -25,6 +26,15 @@ class Node
   String getLabel() {
     return label;
   }
+  
+  synchronized void clearLinks(){
+    incomingEdges.clear();
+    outgoingEdges.clear();
+  }
+
+boolean isFocused(){
+  return this.focus;
+}
 
   void setFocus() {
     focus = true;
@@ -34,19 +44,19 @@ class Node
     focus=false;
   }
 
-  void addIncomingEdge(Node n) {
+  synchronized void addIncomingEdge(Node n) {
     if (!incomingEdges.contains(n)) {
       incomingEdges.add(n);
     }
   }
   
-    void addOutgoingEdge(Node n) {
+   synchronized void addOutgoingEdge(Node n) {
     if (!outgoingEdges.contains(n)) {
       outgoingEdges.add(n);
     }
   }
 
-  ArrayList<Node> getAllEdges() {
+  synchronized ArrayList<Node> getAllEdges() {
     ArrayList<Node> edges = new ArrayList<Node>();
     for(int i=0; i<incomingEdges.size(); i++){
       if(!edges.contains(incomingEdges.get(i))){
@@ -103,10 +113,10 @@ class Node
     return "Node: " + label;
   }
 
-  void drawEdges() {
+  synchronized void drawEdges() {
     stroke(0);
     fill(0);
-    strokeWeight(4);
+    strokeWeight(2);
     for (Node e: incomingEdges) {
       arrowLine((float)x, (float)y, (float)e.x, (float)e.y, radians(20), 0, true);
     }
@@ -147,11 +157,11 @@ class Node
     line(x0, y0, x1, y1);
     if (startAngle != 0)
     {
-      arrowhead(x0, y0, atan2(y1 - y0, x1 - x0), startAngle, solid);
+      arrowhead(x0, y0, r1, atan2(y1 - y0, x1 - x0), startAngle, solid);
     }
     if (endAngle != 0)
     {
-      arrowhead(x1, y1, atan2(y0 - y1, x0 - x1), endAngle, solid);
+      arrowhead(x1, y1, r1, atan2(y0 - y1, x0 - x1), endAngle, solid);
     }
   }
 
@@ -159,11 +169,12 @@ class Node
  * Draws an arrow head at given location
    * x0 - arrow vertex x-coordinate
    * y0 - arrow vertex y-coordinate
+   * r  - distance from line endpoint to arrow vertex
    * lineAngle - angle of line leading to vertex (radians)
    * arrowAngle - angle between arrow and line (radians)
    * solid - true for a solid arrow, false for an "open" arrow
    */
-  void arrowhead(float x0, float y0, float lineAngle, 
+  void arrowhead(float x0, float y0, float r, float lineAngle, 
   float arrowAngle, boolean solid)
   {
     float phi;
@@ -172,6 +183,9 @@ class Node
     float x3;
     float y3;
     final float SIZE = 16;
+
+    x0 = x0 + r * cos(lineAngle);
+    y0 = y0 + r * sin(lineAngle);
 
     x2 = x0 + SIZE * cos(lineAngle + arrowAngle);
     y2 = y0 + SIZE * sin(lineAngle + arrowAngle);
