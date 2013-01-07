@@ -81,13 +81,30 @@ Node copyNode(String label){
   }
 
 
+synchronized Node getNearestNode(int x, int y){
+  if(nodes.size() < 1) return null;
+  Node nearest = nodes.get(0);
+  double nearest_dist = sqrt(height*height + width*width);
+  for(int i=0; i<nodes.size(); i++){
+     int deltaX = x - nodes.get(i).x;
+     int deltaY = y - nodes.get(i).y;
+     double distance = sqrt(deltaX*deltaX + deltaY*deltaY);
+     if (distance < nearest_dist){
+       nearest = nodes.get(i);
+       nearest_dist = distance; 
+    }
+  }
+  return nearest;
+}  
+
 
 
   boolean reflow() {
-    int buffer = 20;
+    int buffer = 25;
+    int buffer_right = 110;
     int control_width = 0;
     double elasticity = 200.0;
-    double repulsion = -5000;
+    double repulsion = -sqrt(width*width + height*height) * 4;
     double tension = .01;
 
     int reset = 0;
@@ -126,8 +143,8 @@ Node copyNode(String label){
       if (n.x<control_width + buffer) { 
         n.x=control_width + buffer;
       } 
-      else if (n.x>width-buffer) { 
-        n.x=width-buffer;
+      else if (n.x>width-buffer_right) { 
+        n.x=width-buffer_right;
       } // don't stray into menu or offscreen
 
       if (n.y<0+buffer) { 

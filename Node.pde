@@ -157,11 +157,11 @@ boolean isFocused(){
     line(x0, y0, x1, y1);
     if (startAngle != 0)
     {
-      arrowhead(x0, y0, atan2(y1 - y0, x1 - x0), startAngle, solid);
+      arrowhead(x0, y0, r1, atan2(y1 - y0, x1 - x0), startAngle, solid);
     }
     if (endAngle != 0)
     {
-      arrowhead(x1, y1, atan2(y0 - y1, x0 - x1), endAngle, solid);
+      arrowhead(x1, y1, r1, atan2(y0 - y1, x0 - x1), endAngle, solid);
     }
   }
 
@@ -169,11 +169,12 @@ boolean isFocused(){
  * Draws an arrow head at given location
    * x0 - arrow vertex x-coordinate
    * y0 - arrow vertex y-coordinate
+   * r  - distance from line endpoint to arrow vertex
    * lineAngle - angle of line leading to vertex (radians)
    * arrowAngle - angle between arrow and line (radians)
    * solid - true for a solid arrow, false for an "open" arrow
    */
-  void arrowhead(float x0, float y0, float lineAngle, 
+  void arrowhead(float x0, float y0, float r, float lineAngle, 
   float arrowAngle, boolean solid)
   {
     float phi;
@@ -182,6 +183,9 @@ boolean isFocused(){
     float x3;
     float y3;
     final float SIZE = 16;
+
+    x0 = x0 + r * cos(lineAngle);
+    y0 = y0 + r * sin(lineAngle);
 
     x2 = x0 + SIZE * cos(lineAngle + arrowAngle);
     y2 = y0 + SIZE * sin(lineAngle + arrowAngle);

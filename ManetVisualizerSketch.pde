@@ -3,6 +3,9 @@ import apwidgets.*;
 import java.util.TreeSet;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import android.adhoc.manet.ManetObserver;
 import android.adhoc.manet.service.ManetService.AdhocStateEnum;
 import android.adhoc.manet.system.ManetConfig;
@@ -33,24 +36,24 @@ int padding=30;
 
 //Handle Menu
 @Override
-public boolean onCreateOptionsMenu(Menu menu){
+public boolean onCreateOptionsMenu(Menu menu) {
   System.out.println("OnCreateOptionsMenu");
   boolean supRetVal = super.onCreateOptionsMenu(menu);
   SubMenu reset = menu.addSubMenu(0, 0, 0, "Reset");
- return supRetVal;
+  return supRetVal;
 }
 
 @Override
-    public boolean onOptionsItemSelected(MenuItem menuItem) {
-    	boolean supRetVal = super.onOptionsItemSelected(menuItem);
-    	switch (menuItem.getItemId()) {
-	    	case 0 :
-		  g.clear();
-                  mComm.getRoutingInfo();
-                  break;
-	    }
-    	return supRetVal;
-    }    
+public boolean onOptionsItemSelected(MenuItem menuItem) {
+  boolean supRetVal = super.onOptionsItemSelected(menuItem);
+  switch (menuItem.getItemId()) {
+  case 0 :
+    g.clear();
+    mComm.getRoutingInfo();
+    break;
+  }
+  return supRetVal;
+}    
 
 //Set up initial state
 void setup() { 
@@ -78,7 +81,7 @@ void setup() {
   Thread updateThread = new Thread() {
     public void run() {
       while (true) {
-        System.out.println("Performing Auto-update");
+        //System.out.println("Performing Auto-update");
         mComm.getRoutingInfo();
         try {
           Thread.sleep(3 * 1000);
@@ -95,15 +98,35 @@ void setup() {
 
 /*
 void onClickWidget(APWidget widget) {
-  if (widget == btn_refresh) {
-    g.clear();
-    mComm.getRoutingInfo();
+ if (widget == btn_refresh) {
+ g.clear();
+ mComm.getRoutingInfo();
+ }
+ }
+ */
+
+public boolean surfaceTouchEvent(MotionEvent event) {
+  print("SurfaceTouchEvent! "+mouseX +" " + mouseY);
+  // your code here
+  Node n = g.getNearestNode(mouseX, mouseY);
+  if (n!=null) {
+    int deltaX = mouseX - n.x;
+    int deltaY = mouseY - n.y;
+    double distance = sqrt(deltaX*deltaX + deltaY*deltaY);
+    if (distance < 50) {
+      //handle action on node
+
+      //g.focus(n);
+      //sendMessage(n.getLabel(), "Sent from Viz App!");
+    }
   }
+  return super.surfaceTouchEvent(event);
 }
-*/
 
 void draw() { 
-  background(255);
+  background(255, 255, 255);
+  fill(255);
+  rect(0, 0, width, height);
   //fill(150, 150, 150);
   stroke(0);
   //rect(0, 0, 200, height);
@@ -125,7 +148,7 @@ void makeGraph(ArrayList<String> data)
 
   Graph g_temp = new Graph();
   for (int i=0; i<data.size(); i++) {
-    System.out.println("Edge: " + data.get(i));
+    //System.out.println("Edge: " + data.get(i));
     int dsh = data.get(i).indexOf(">");
     String src = data.get(i).substring(0, dsh);
     String dst = data.get(i).substring(dsh+1, data.get(i).length());
@@ -160,10 +183,47 @@ void makeGraph(ArrayList<String> data)
     g_temp.directedLink(src_n, dst_n);
   }
   g = g_temp;
-  
+
   String myIP = mComm.getConfig().getIpAddress();
+  if (!g.containsLabel(myIP)) {
+    g.addNode(new Node(myIP, width/2, height/2));
+  }
   g.focus(g.getNodeByLabel(myIP));
 } 
+
+private void sendMessage(String address, String msg) {
+
+  DatagramSocket socket = null;
+  try {
+    socket = new DatagramSocket();
+
+    byte buff[] = msg.getBytes();
+    int msgLen = buff.length;
+    boolean truncated = false;
+    if (msgLen > 256) {
+      msgLen = 256;
+      truncated = true;
+    }
+    DatagramPacket packet = new DatagramPacket(buff, msgLen, InetAddress.getByName(address), 9000);
+    socket.send(packet);
+    if (truncated) {
+      print("Message truncated and sent.");
+    } 
+    else {
+      print("Message sent: "+address+": " + msg);
+    }
+  } 
+  catch (Exception e) {
+    e.printStackTrace();
+    //app.displayToastMessage("Error: " + e.getMessage());
+  } 
+  finally {
+    if (socket != null) {
+      socket.close();
+    }
+  }
+}
+
 
 class ManetCommunicator implements ManetObserver {
   ManetConfig manetcfg;
@@ -213,7 +273,7 @@ class ManetCommunicator implements ManetObserver {
 
   @Override
     public void onConfigUpdated(ManetConfig arg0) {
-    System.out.println("-Received ManetConfig");
+    //System.out.println("-Received ManetConfig");
 
     manetcfg = arg0;
     //set config object
@@ -240,7 +300,7 @@ class ManetCommunicator implements ManetObserver {
   @Override
     public void onRoutingInfoUpdated(String arg0) {
     // TODO Auto-generated method stub
-    System.out.println("-Receieved Routing Info");
+    //System.out.println("-Receieved Routing Info");
 
 
     if (arg0 == null) {
@@ -255,11 +315,11 @@ class ManetCommunicator implements ManetObserver {
 
     ArrayList<String> edges;
     if (manetcfg.getRoutingProtocol().equals(OlsrProtocol.NAME)) {
-      System.out.println("--Using OLSR.");
+      //System.out.println("--Using OLSR.");
       edges = ManetParser.parseOLSR(arg0);
     }
     else {
-      System.out.println("--Using Simple");
+      //System.out.println("--Using Simple");
       edges = ManetParser.parseRoutingInfo(arg0);
     }
 
