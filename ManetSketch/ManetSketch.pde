@@ -20,6 +20,7 @@ import android.view.Menu;
 import android.widget.Toast;
 import android.view.SubMenu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 
 //Control Variables
 APWidgetContainer widgetContainer; 
@@ -61,7 +62,7 @@ void setup() {
   mComm = new ManetCommunicator(this);
 
   nodes = new ArrayList<Node>();
-  size(screenWidth, screenHeight, P3D);
+  size(displayWidth, displayHeight, P3D);
   //size(500, 300);
   //build controls
   //Mcomm = new ManetCommunicator(this);
