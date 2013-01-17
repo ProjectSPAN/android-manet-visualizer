@@ -6,14 +6,14 @@ import java.util.HashSet;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import android.adhoc.manet.ManetObserver;
-import android.adhoc.manet.service.ManetService.AdhocStateEnum;
-import android.adhoc.manet.system.ManetConfig;
-import android.adhoc.manet.ManetHelper;
-import android.adhoc.manet.ManetParser;
-import android.adhoc.manet.routing.OlsrProtocol;
-import android.adhoc.manet.routing.SimpleProactiveProtocol;
-import android.adhoc.manet.routing.Node;
+import org.span.service.ManetObserver;
+import org.span.service.core.ManetService.AdhocStateEnum;
+import org.span.service.system.ManetConfig;
+import org.span.service.ManetHelper;
+import org.span.service.ManetParser;
+import org.span.service.routing.OlsrProtocol;
+import org.span.service.routing.SimpleProactiveProtocol;
+import org.span.service.routing.Node;
 import android.content.Context;
 import android.app.Activity;
 import android.view.Menu;
@@ -351,7 +351,7 @@ class ManetCommunicator implements ManetObserver {
   }
 
   @Override
-    public void onPeersUpdated(HashSet<android.adhoc.manet.routing.Node> peers) {
+    public void onPeersUpdated(HashSet<org.span.service.routing.Node> peers) {
     // TODO Auto-generated method stub
   }
 }
