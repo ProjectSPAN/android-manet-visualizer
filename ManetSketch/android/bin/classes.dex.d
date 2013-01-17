@@ -1,0 +1,19 @@
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes.dex : \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$ManetCommunicator$4.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$Graph.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/R$drawable.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/R$attr.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$ManetCommunicator.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/R$layout.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/BuildConfig.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/R.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$Node.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$ManetCommunicator$3.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$1.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$ManetCommunicator$1.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch.class \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/bin/classes/android/adhoc/manet/visualizer/ManetSketch$ManetCommunicator$2.class \
+/home/dev/Desktop/android-sdk-linux_x86/tools/support/annotations.jar \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/libs/apwidgets.jar \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/libs/processing-core.jar \
+/home/dev/git/android-manet-visualizer/ManetSketch/android/libs/libmanet.jar \
