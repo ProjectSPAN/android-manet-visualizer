@@ -1,3 +1,0 @@
-# view AndroidManifest.xml #generated:4
--keep class android.adhoc.manet.visualizer.ManetSketch { <init>(...); }
-
