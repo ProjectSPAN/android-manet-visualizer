@@ -14,13 +14,16 @@ import org.span.service.ManetParser;
 import org.span.service.routing.OlsrProtocol;
 import org.span.service.routing.SimpleProactiveProtocol;
 import org.span.service.routing.Node;
+import org.span.service.legal.EulaHelper;
+import org.span.service.legal.EulaObserver;
 import android.content.Context;
 import android.app.Activity;
+import android.os.Bundle;
 import android.view.Menu;
-import android.widget.Toast;
 import android.view.SubMenu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.widget.Toast;
 
 //Control Variables
 APWidgetContainer widgetContainer; 
@@ -57,10 +60,7 @@ public boolean onOptionsItemSelected(MenuItem menuItem) {
 }    
 
 //Set up initial state
-void setup() { 
-
-  mComm = new ManetCommunicator(this);
-
+void setup() {
   nodes = new ArrayList<Node>();
   size(displayWidth, displayHeight, P3D);
   //size(500, 300);
@@ -70,7 +70,6 @@ void setup() {
   //btn_refresh = new APButton(10, 10, 100, 50, "Refresh"); 
   //widgetContainer.addWidget(btn_refresh); //place button in container
 
-
   // frameRate(24);
   noLoop();
   g=new Graph();
@@ -78,7 +77,18 @@ void setup() {
   redraw();
   //create thread to get routing info on a timer
 
+  final Activity activity = (Activity) this;
+  activity.runOnUiThread(new Runnable() {
+    public void run() {
+      EulaHelper eula = new EulaHelper(activity, new EulaHandler());
+      eula.showDialog();
+    }
+  });
+} 
 
+void init() {
+  mComm = new ManetCommunicator(this);
+    
   Thread updateThread = new Thread() {
     public void run() {
       while (true) {
@@ -94,8 +104,7 @@ void setup() {
     }
   };
   updateThread.start();
-} 
-
+}
 
 /*
 void onClickWidget(APWidget widget) {
@@ -225,6 +234,12 @@ private void sendMessage(String address, String msg) {
   }
 }
 
+class EulaHandler implements EulaObserver {
+  public void onEulaAccepted() {
+    System.out.println("Accepted EULA"); // DEBUG
+    ManetSketch.this.init();
+  }
+}
 
 class ManetCommunicator implements ManetObserver {
   ManetConfig manetcfg;
@@ -258,7 +273,7 @@ class ManetCommunicator implements ManetObserver {
       Activity activity=(Activity) this.context;
       activity.runOnUiThread(new Runnable() {
         public void run() {
-          //Toast.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Manet Configuration", Toast.LENGTH_SHORT).show();
+          //.makeText((Activity)ManetCommunicator.this.context, "Querying Service for Manet Configuration", Toast.LENGTH_SHORT).show();
           helper.sendManetConfigQuery();
         }
       }
