@@ -24,7 +24,11 @@ ant debug
 cd <path>/android-manet-visualizer/ManetSketch/android
 ant release
 jarsigner -verbose -sigalg MD5withRSA -digestalg SHA1 -keystore /home/dev/Desktop/KEYSTORE/span.keystore ./bin/ManetSketch-release-unsigned.apk spankey
-mv ./bin/ManetSketch-release-unsigned.apk ./bin/ManetSketch.apk
+
+# zipalign Release
+zipalign -v 4 ./bin/ManetSketch-release-unsigned.apk ./bin/ManetSketch.apk
 
 # Verify Signature
 jarsigner -verify ./bin/ManetSketch.apk
+
+
