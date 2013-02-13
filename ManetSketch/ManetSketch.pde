@@ -60,9 +60,14 @@ public boolean onOptionsItemSelected(MenuItem menuItem) {
 }    
 
 //Set up initial state
-void setup() {
+void setup() {  
   nodes = new ArrayList<Node>();
-  size(displayWidth, displayHeight, P3D);
+  size(screenWidth, screenHeight, P3D);
+  
+  // NOTE: On some devices the following error occurs: "Smooth is not supported by this hardware (or driver)"
+  // smooth, noSmooth() are working in 2.0a5, not in 2.0b7 (where smoothing is enabled by default and cannot be disabled)
+  noSmooth();
+  
   //size(500, 300);
   //build controls
   //Mcomm = new ManetCommunicator(this);

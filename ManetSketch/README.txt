@@ -2,7 +2,7 @@
 http://wiki.processing.org/w/Android
 
 # Develop Sketch Files
-Open ManetSketch.pde in the Processing for Android IDE (processing-2.0b7).
+Open ManetSketch.pde in the Processing for Android IDE (processing-2.0a5, don't use processing-2.0b7).
 Switch to Android mode by clicking "Java" box on right and selecting "Android".
 
 # Run App through Processing IDE
